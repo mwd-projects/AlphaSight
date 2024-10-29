@@ -10,6 +10,7 @@ cursor = conn.cursor()
 # Dictionary to store data for each ticker
 data_dict = {}
 
+
 # Create the stocks table if it doesn't already exist
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS stocks (
@@ -38,7 +39,7 @@ for ticker in dow_jones_tickers:
     print(f"Fetching data for {ticker}...")
     
     # Fetch historical data for each ticker
-    stock_data = yf.download(ticker, start="2023-01-01", end="2023-12-31")
+    stock_data = yf.download(ticker, start="2024-01-01", end="2024-10-27")
 
     # Check if data is returned
     if not stock_data.empty:
@@ -63,12 +64,41 @@ for ticker in dow_jones_tickers:
 
 # Query and store Close prices for each ticker in data_dict
 for ticker in dow_jones_tickers:
-    query = f"SELECT date, close FROM stocks WHERE ticker = '{ticker}' ORDER BY date"
+    query = f"SELECT date, close FROM stocks WHERE ticker = '{ticker}' AND date >= '2024-01-01' ORDER BY date"
     data = pd.read_sql(query, conn, parse_dates=['date'])
     data_dict[ticker] = data.set_index('date')['close']
 
-# Close the database connection
+
+
+
+percentage_differences = {}
+
+for ticker in dow_jones_tickers:
+    # Query for the first opening price and last closing price
+    cursor.execute(f'''
+        SELECT open FROM stocks WHERE ticker = '{ticker}' AND date >= '2024-01-01' ORDER BY date ASC LIMIT 1''')
+    first_open = cursor.fetchone()[0]  # Get the first opening price
+
+    cursor.execute(f'''
+            SELECT close FROM stocks WHERE ticker = '{ticker}' AND date >= '2024-01-01' ORDER BY date DESC LIMIT 1''')
+    last_close = cursor.fetchone()[0]  # Get the last closing price
+
+    # Calculate the percentage difference
+    if first_open and last_close:
+        percentage_diff = ((last_close - first_open) / first_open) * 100
+        percentage_differences[ticker] = percentage_diff
+
+
 conn.close()
+
+
+results_df = pd.DataFrame(list(percentage_differences.items()), columns=["Ticker", "Percentage Difference"])
+results_df = results_df.sort_values(by="Percentage Difference", ascending=False)
+
+# Display the results
+print("Biggest percentage differences between first open and last close for each company:")
+print(results_df)
+
 
 # Initialize a larger plot for clarity
 plt.figure(figsize=(14, 8))
@@ -87,3 +117,5 @@ plt.grid(True)
 # Show the plot
 plt.tight_layout()
 plt.show()
+
+
