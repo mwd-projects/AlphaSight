@@ -3,6 +3,7 @@ import pandas as pd
 import sqlite3
 import matplotlib.pyplot as plt
 
+
 # Connect to SQLite database (or create it if it doesn't exist)
 conn = sqlite3.connect("D:/CodeTemp/MyData/stock_data.db")
 cursor = conn.cursor()
@@ -88,6 +89,8 @@ for ticker in dow_jones_tickers:
         percentage_diff = ((last_close - first_open) / first_open) * 100
         percentage_differences[ticker] = percentage_diff
 
+query = "SELECT * FROM stocks"
+stock_data_df = pd.read_sql(query, conn)
 
 conn.close()
 
@@ -98,6 +101,10 @@ results_df = results_df.sort_values(by="Percentage Difference", ascending=False)
 # Display the results
 print("Biggest percentage differences between first open and last close for each company:")
 print(results_df)
+
+stock_data_df.to_excel("D:/CodeTemp/MyData/full_stock_data.xlsx", index=False)
+
+print("Stock data has been written to 'D:/CodeTemp/MyData/full_stock_data.xlsx'")
 
 
 # Initialize a larger plot for clarity
@@ -117,5 +124,4 @@ plt.grid(True)
 # Show the plot
 plt.tight_layout()
 plt.show()
-
 
